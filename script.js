@@ -1,245 +1,148 @@
-// main quiz engine
-const QUESTIONS_ALL = QUESTIONS.slice(); // copy
-let questions = [];
-let current = 0;
+// script.js
+
+// DOM Elements
+const startBtn = document.getElementById("start-btn");
+const homeScreen = document.getElementById("home-screen");
+const quizScreen = document.getElementById("quiz-screen");
+const questionText = document.getElementById("question");
+const optionsContainer = document.getElementById("options");
+const timerText = document.getElementById("timer");
+const scoreBoard = document.getElementById("score");
+const resultScreen = document.getElementById("result-screen");
+const finalScoreText = document.getElementById("final-score");
+const leaderboardScreen = document.getElementById("leaderboard-screen");
+const leaderboardList = document.getElementById("leaderboard-list");
+const closeLeaderboardBtn = document.getElementById("close-leaderboard");
+
+let currentQuestionIndex = 0;
 let score = 0;
-let correctCount = 0;
-let wrongCount = 0;
+let timer;
+let timeLeft = 20;
 let streak = 0;
-let timerInterval = null;
-let timePerQuestion = parseInt(localStorage.getItem('timePerQ')) || 15;
-let remaining = timePerQuestion;
 
-// DOM
-const qText = document.getElementById('question-text');
-const optionsDiv = document.getElementById('options');
-const timerEl = document.getElementById('timer');
-const scoreEl = document.getElementById('score');
-const correctEl = document.getElementById('correct-count');
-const wrongEl = document.getElementById('wrong-count');
-const streakEl = document.getElementById('streak');
-const feedbackEl = document.getElementById('feedback');
-const timeSelect = document.getElementById('timeSelect');
-const leaderboardBtn = document.getElementById('leaderboardBtn');
-const modal = document.getElementById('modal');
-const leaderList = document.getElementById('leaderList');
-const closeModal = document.getElementById('closeModal');
-const restartBtn = document.getElementById('restartBtn');
-const badgesDiv = document.getElementById('badges');
+// Load questions from questions.js
+let usedQuestions = [];
+let availableQuestions = [...questions];
 
-// init
-timeSelect.value = timePerQuestion;
-timeSelect.addEventListener('change', (e)=>{
-  timePerQuestion = parseInt(e.target.value);
-  localStorage.setItem('timePerQ', timePerQuestion);
-});
-
-leaderboardBtn.addEventListener('click', showLeaderboard);
-closeModal.addEventListener('click', ()=> modal.classList.add('hidden'));
-restartBtn.addEventListener('click', initGame);
-
-function initGame(){
-  // shuffle and pick all questions in random order (so repetition each session random)
-  questions = shuffleArray(QUESTIONS_ALL.slice());
-  current = 0;
-  score = 0;
-  correctCount = 0;
-  wrongCount = 0;
-  streak = 0;
-  updateHUD();
-  nextQuestion();
-  renderBadges();
-}
-
-function nextQuestion(){
-  if(timerInterval) clearInterval(timerInterval);
-  if(current >= questions.length){
-    finishGame();
-    return;
-  }
-  const q = questions[current];
-  qText.textContent = q.q;
-  optionsDiv.innerHTML = '';
-  q.options.forEach((opt, idx)=>{
-    const btn = document.createElement('button');
-    btn.className = 'option-btn';
-    btn.textContent = opt;
-    btn.dataset.idx = idx;
-    btn.addEventListener('click', ()=> handleAnswer(idx, btn));
-    optionsDiv.appendChild(btn);
-  });
-
-  // reset feedback
-  feedbackEl.textContent = '';
-  // timer
-  remaining = timePerQuestion;
-  timerEl.textContent = remaining;
-  timerInterval = setInterval(()=>{
-    remaining--;
-    timerEl.textContent = remaining;
-    if(remaining <= 0){
-      clearInterval(timerInterval);
-      autoMarkWrong();
-    }
-  },1000);
-}
-
-function handleAnswer(idx, btn){
-  if(timerInterval) clearInterval(timerInterval);
-  const q = questions[current];
-  const correctIdx = q.a;
-  lockOptions();
-  if(idx === correctIdx){
-    // correct
-    correctCount++;
-    streak++;
-    const base = 10;
-    const timeBonus = Math.max(0, remaining);
-    const streakBonus = streak * 2;
-    const earned = base + timeBonus + streakBonus;
-    score += earned;
-    showFeedback(true, correctIdx, idx);
-  }else{
-    // wrong
-    wrongCount++;
+// Start Game
+function startGame() {
+    homeScreen.style.display = "none";
+    resultScreen.style.display = "none";
+    quizScreen.style.display = "block";
+    score = 0;
     streak = 0;
-    showFeedback(false, correctIdx, idx);
-  }
-  updateHUD();
-  // auto move to next after short delay
-  setTimeout(()=>{
-    current++;
-    nextQuestion();
-  }, 1400);
+    usedQuestions = [];
+    availableQuestions = [...questions];
+    loadQuestion();
 }
 
-function autoMarkWrong(){
-  // show correct & mark wrong counts
-  wrongCount++;
-  streak = 0;
-  updateHUD();
-  showFeedback(false, questions[current].a, null);
-  setTimeout(()=>{
-    current++;
-    nextQuestion();
-  }, 1200);
-}
-
-function showFeedback(isCorrect, correctIdx, chosenIdx){
-  const optionBtns = Array.from(document.querySelectorAll('.option-btn'));
-  optionBtns.forEach((b, i) => {
-    if(i === correctIdx){
-      b.classList.add('correct');
-      // animate: rotate a bit
-      b.style.transform = 'rotateY(6deg)';
-      b.style.transition = 'transform 0.6s';
+// Load Question
+function loadQuestion() {
+    if (availableQuestions.length === 0) {
+        endGame();
+        return;
     }
-    if(chosenIdx !== null && i === chosenIdx && i !== correctIdx){
-      b.classList.add('wrong');
-      b.style.transform = 'scale(0.98)';
+
+    const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+    const questionData = availableQuestions[randomIndex];
+    currentQuestionIndex = questions.indexOf(questionData);
+
+    usedQuestions.push(questionData);
+    availableQuestions.splice(randomIndex, 1);
+
+    questionText.innerText = questionData.question;
+    optionsContainer.innerHTML = "";
+
+    questionData.options.forEach((option, index) => {
+        const btn = document.createElement("button");
+        btn.classList.add("option-btn");
+        btn.innerText = option;
+        btn.onclick = () => selectAnswer(option, questionData.answer);
+        optionsContainer.appendChild(btn);
+    });
+
+    resetTimer();
+}
+
+// Answer Selection
+function selectAnswer(selected, correct) {
+    clearInterval(timer);
+
+    const optionButtons = document.querySelectorAll(".option-btn");
+    optionButtons.forEach(btn => {
+        if (btn.innerText === correct) {
+            btn.classList.add("correct");
+        } else if (btn.innerText === selected) {
+            btn.classList.add("wrong");
+        }
+        btn.disabled = true;
+    });
+
+    if (selected === correct) {
+        streak++;
+        score += 10 + timeLeft + (streak > 1 ? streak * 2 : 0);
+    } else {
+        streak = 0;
     }
-  });
 
-  if(isCorrect){
-    feedbackEl.textContent = `সঠিক উত্তর! +${10 + Math.max(0,remaining) + (streak*2)} পয়েন্ট`;
-    feedbackEl.style.color = 'var(--gold)';
-  } else {
-    feedbackEl.textContent = `ভুল উত্তর। সঠিক উত্তর: "${questions[current].options[correctIdx]}"`;
-    feedbackEl.style.color = 'var(--danger)';
-  }
+    scoreBoard.innerText = `স্কোর: ${score}`;
+
+    setTimeout(() => {
+        loadQuestion();
+    }, 1500);
 }
 
-function lockOptions(){
-  const btns = document.querySelectorAll('.option-btn');
-  btns.forEach(b => b.disabled = true);
+// Timer
+function resetTimer() {
+    clearInterval(timer);
+    timeLeft = 20;
+    timerText.innerText = timeLeft;
+
+    timer = setInterval(() => {
+        timeLeft--;
+        timerText.innerText = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            loadQuestion();
+        }
+    }, 1000);
 }
 
-function updateHUD(){
-  scoreEl.textContent = score;
-  correctEl.textContent = correctCount;
-  wrongEl.textContent = wrongCount;
-  streakEl.textContent = streak;
+// End Game
+function endGame() {
+    quizScreen.style.display = "none";
+    resultScreen.style.display = "block";
+    finalScoreText.innerText = `আপনার মোট স্কোর: ${score}`;
+    saveToLeaderboard(score);
+    showLeaderboard();
 }
 
-function finishGame(){
-  // stop timer
-  if(timerInterval) clearInterval(timerInterval);
-
-  // save leaderboard
-  const name = prompt("আপনার নাম লিখুন (Leaderboard এ জমা হবে):","Player");
-  saveLeaderboard(name || 'Player', score);
-
-  // show results
-  alert(`Game Over!\nScore: ${score}\nসঠিক: ${correctCount}\nভুল: ${wrongCount}`);
-  renderLeaderboard();
-  renderBadges(true);
+// Leaderboard System
+function saveToLeaderboard(newScore) {
+    let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    leaderboard.push({ score: newScore, date: new Date().toLocaleString() });
+    leaderboard.sort((a, b) => b.score - a.score);
+    leaderboard = leaderboard.slice(0, 10);
+    localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
 }
 
-// leaderboard using localStorage
-function saveLeaderboard(name, scoreVal){
-  const key = 'bf007_leader';
-  const list = JSON.parse(localStorage.getItem(key) || '[]');
-  list.push({name, score: scoreVal, date: new Date().toISOString()});
-  // sort desc and keep top 50
-  list.sort((a,b)=> b.score - a.score);
-  localStorage.setItem(key, JSON.stringify(list.slice(0,50)));
+function showLeaderboard() {
+    leaderboardList.innerHTML = "";
+    let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    if (leaderboard.length === 0) {
+        leaderboardList.innerHTML = "<li>কোন রেকর্ড নেই</li>";
+        return;
+    }
+    leaderboard.forEach((entry, index) => {
+        const li = document.createElement("li");
+        li.innerText = `${index + 1}. স্কোর: ${entry.score} (${entry.date})`;
+        leaderboardList.appendChild(li);
+    });
 }
 
-function showLeaderboard(){
-  renderLeaderboard();
-  modal.classList.remove('hidden');
-}
-
-function renderLeaderboard(){
-  const key = 'bf007_leader';
-  const list = JSON.parse(localStorage.getItem(key) || '[]');
-  leaderList.innerHTML = '';
-  if(list.length === 0){
-    leaderList.innerHTML = '<li>কোন রেকর্ড নেই</li>';
-    return;
-  }
-  list.forEach(entry=>{
-    const li = document.createElement('li');
-    const date = new Date(entry.date);
-    li.textContent = `${entry.name} — ${entry.score} — ${date.toLocaleDateString()}`;
-    leaderList.appendChild(li);
-  });
-}
-
-// helper shuffle
-function shuffleArray(arr){
-  for(let i = arr.length -1; i>0; i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-// Achievement / badge system
-function renderBadges(final=false){
-  badgesDiv.innerHTML = '';
-  // load best score
-  const key = 'bf007_leader';
-  const list = JSON.parse(localStorage.getItem(key) || '[]');
-  const best = list[0] ? list[0].score : 0;
-
-  const badges = [];
-  if(score >= 200 || best >= 200) badges.push('Legendary (200+)');
-  if(score >= 100 || best >= 100) badges.push('Pro (100+)');
-  if(correctCount >= 20) badges.push('Sharp Shooter (20+)');
-  if(streak >= 5) badges.push('Hot Streak (5)');
-  if(final && score === 0) badges.push('Try Again');
-
-  if(badges.length === 0) badges.push('Novice');
-
-  badges.forEach(b => {
-    const el = document.createElement('div');
-    el.className = 'badge';
-    el.textContent = b;
-    badgesDiv.appendChild(el);
-  });
-}
-
-// start
-initGame();
-renderLeaderboard();
+// Event Listeners
+startBtn.addEventListener("click", startGame);
+closeLeaderboardBtn.addEventListener("click", () => {
+    leaderboardScreen.style.display = "none";
+    homeScreen.style.display = "block";
+});
