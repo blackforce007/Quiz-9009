@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Black Force 007 — Samajik Gyan Quiz</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <h1>Black Force 007</h1>
+      <p class="subtitle">Samajik Gyan কুইজ</p>
+    </header>
+
+    <main class="container">
+      <section class="hud">
+        <div class="left">
+          <div class="score-box">
+            <div>Score</div>
+            <div id="score">0</div>
+          </div>
+          <div class="stats">
+            <div>সঠিক: <span id="correct-count">0</span></div>
+            <div>ভুল: <span id="wrong-count">0</span></div>
+          </div>
+        </div>
+        <div class="center">
+          <div class="timer">
+            <div>টাইমার</div>
+            <div id="timer">15</div>
+          </div>
+          <div class="streak">স্ট্রিক: <span id="streak">0</span></div>
+        </div>
+        <div class="right">
+          <button id="leaderboardBtn" class="btn">Leaderboard</button>
+          <button id="restartBtn" class="btn ghost">Restart</button>
+        </div>
+      </section>
+
+      <section class="quiz-area">
+        <div class="question-card">
+          <!-- প্রশ্ন টেবিল আলাদা-->
+          <table class="question-table">
+            <tr>
+              <td class="q-label">প্রশ্ন</td>
+              <td class="q-text" id="question-text">লোড হচ্ছে...</td>
+            </tr>
+          </table>
+
+          <div class="options" id="options">
+            <!-- অপশন বাটনগুলো এখানে JS দ্বারা যোগ হবে -->
+          </div>
+
+          <div class="feedback" id="feedback" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="footer-area">
+        <div class="controls">
+          <label>প্রতিটি প্রশ্নের জন্য টাইম:</label>
+          <select id="timeSelect">
+            <option value="15">15 সেকেন্ড</option>
+            <option value="20">20 সেকেন্ড</option>
+          </select>
+        </div>
+
+        <div class="achievements" id="achievements">
+          <h3>অ্যাচিভমেন্ট</h3>
+          <div class="badges" id="badges">
+            <!-- বেসড অন পারফরম্যান্স -->
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Leaderboard modal -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Leaderboard</h2>
+      <ol id="leaderList"></ol>
+      <button id="closeModal" class="btn">Close</button>
+    </div>
+  </div>
+
+  <script src="questions.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
