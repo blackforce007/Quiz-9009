@@ -1,18 +1,23 @@
 // script.js
 
+// Safe DOM selector helper
+function $(id) {
+    return document.getElementById(id);
+}
+
 // DOM Elements
-const startBtn = document.getElementById("start-btn");
-const homeScreen = document.getElementById("home-screen");
-const quizScreen = document.getElementById("quiz-screen");
-const questionText = document.getElementById("question");
-const optionsContainer = document.getElementById("options");
-const timerText = document.getElementById("timer");
-const scoreBoard = document.getElementById("score");
-const resultScreen = document.getElementById("result-screen");
-const finalScoreText = document.getElementById("final-score");
-const leaderboardScreen = document.getElementById("leaderboard-screen");
-const leaderboardList = document.getElementById("leaderboard-list");
-const closeLeaderboardBtn = document.getElementById("close-leaderboard");
+const startBtn = $("start-btn");
+const homeScreen = $("home-screen");
+const quizScreen = $("quiz-screen");
+const questionText = $("question");
+const optionsContainer = $("options");
+const timerText = $("timer");
+const scoreBoard = $("score");
+const resultScreen = $("result-screen");
+const finalScoreText = $("final-score");
+const leaderboardScreen = $("leaderboard-screen");
+const leaderboardList = $("leaderboard-list");
+const closeLeaderboardBtn = $("close-leaderboard");
 
 let currentQuestionIndex = 0;
 let score = 0;
@@ -22,17 +27,24 @@ let streak = 0;
 
 // Load questions from questions.js
 let usedQuestions = [];
-let availableQuestions = [...questions];
+let availableQuestions = questions ? [...questions] : [];
 
 // Start Game
 function startGame() {
-    homeScreen.style.display = "none";
-    resultScreen.style.display = "none";
-    quizScreen.style.display = "block";
+    if (!availableQuestions.length) {
+        alert("⚠️ কোন প্রশ্ন পাওয়া যায়নি! questions.js ফাইল চেক করুন।");
+        return;
+    }
+
+    if (homeScreen) homeScreen.style.display = "none";
+    if (resultScreen) resultScreen.style.display = "none";
+    if (quizScreen) quizScreen.style.display = "block";
+
     score = 0;
     streak = 0;
     usedQuestions = [];
     availableQuestions = [...questions];
+    scoreBoard.innerText = `স্কোর: ${score}`;
     loadQuestion();
 }
 
@@ -50,10 +62,10 @@ function loadQuestion() {
     usedQuestions.push(questionData);
     availableQuestions.splice(randomIndex, 1);
 
-    questionText.innerText = questionData.question;
-    optionsContainer.innerHTML = "";
+    if (questionText) questionText.innerText = questionData.question;
+    if (optionsContainer) optionsContainer.innerHTML = "";
 
-    questionData.options.forEach((option, index) => {
+    questionData.options.forEach((option) => {
         const btn = document.createElement("button");
         btn.classList.add("option-btn");
         btn.innerText = option;
@@ -85,7 +97,7 @@ function selectAnswer(selected, correct) {
         streak = 0;
     }
 
-    scoreBoard.innerText = `স্কোর: ${score}`;
+    if (scoreBoard) scoreBoard.innerText = `স্কোর: ${score}`;
 
     setTimeout(() => {
         loadQuestion();
@@ -96,11 +108,11 @@ function selectAnswer(selected, correct) {
 function resetTimer() {
     clearInterval(timer);
     timeLeft = 20;
-    timerText.innerText = timeLeft;
+    if (timerText) timerText.innerText = timeLeft;
 
     timer = setInterval(() => {
         timeLeft--;
-        timerText.innerText = timeLeft;
+        if (timerText) timerText.innerText = timeLeft;
         if (timeLeft <= 0) {
             clearInterval(timer);
             loadQuestion();
@@ -110,9 +122,9 @@ function resetTimer() {
 
 // End Game
 function endGame() {
-    quizScreen.style.display = "none";
-    resultScreen.style.display = "block";
-    finalScoreText.innerText = `আপনার মোট স্কোর: ${score}`;
+    if (quizScreen) quizScreen.style.display = "none";
+    if (resultScreen) resultScreen.style.display = "block";
+    if (finalScoreText) finalScoreText.innerText = `আপনার মোট স্কোর: ${score}`;
     saveToLeaderboard(score);
     showLeaderboard();
 }
@@ -127,6 +139,7 @@ function saveToLeaderboard(newScore) {
 }
 
 function showLeaderboard() {
+    if (!leaderboardList) return;
     leaderboardList.innerHTML = "";
     let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
     if (leaderboard.length === 0) {
@@ -141,8 +154,10 @@ function showLeaderboard() {
 }
 
 // Event Listeners
-startBtn.addEventListener("click", startGame);
-closeLeaderboardBtn.addEventListener("click", () => {
-    leaderboardScreen.style.display = "none";
-    homeScreen.style.display = "block";
-});
+if (startBtn) startBtn.addEventListener("click", startGame);
+if (closeLeaderboardBtn) {
+    closeLeaderboardBtn.addEventListener("click", () => {
+        if (leaderboardScreen) leaderboardScreen.style.display = "none";
+        if (homeScreen) homeScreen.style.display = "block";
+    });
+}
